@@ -39,6 +39,12 @@ This module defines the following variables:
   The version of libkml found.
 #]=======================================================================]
 
+find_package(LibKML 2 CONFIG)
+
+if(LibKML_FOUND)
+  return()
+endif()
+
 find_package(PkgConfig QUIET)
 if(PKG_CONFIG_FOUND)
   pkg_check_modules(PC_LIBKML QUIET libkml)
