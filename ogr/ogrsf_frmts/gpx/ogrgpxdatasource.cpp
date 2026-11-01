@@ -193,6 +193,12 @@ void OGRGPXDataSource::startElementValidateCbk(const char *pszNameIn,
     }
     else if (m_validity == GPX_VALIDITY_VALID)
     {
+        // Any <extensions> element, at any level means the file uses extensions
+        if (strcmp(pszNameIn, "extensions") == 0)
+        {
+            m_bUseExtensions = true;
+        }
+
         if (m_nDepth == 1 && strcmp(pszNameIn, "metadata") == 0)
         {
             m_bInMetadata = true;
@@ -332,10 +338,6 @@ void OGRGPXDataSource::startElementValidateCbk(const char *pszNameIn,
             {
                 m_osMetadataKey = "AUTHOR_LINK_TYPE";
             }
-        }
-        else if (m_nDepth == 2 && strcmp(pszNameIn, "extensions") == 0)
-        {
-            m_bUseExtensions = true;
         }
     }
     m_nDepth++;
@@ -487,11 +489,8 @@ int OGRGPXDataSource::Open(GDALOpenInfo *poOpenInfo)
             if (strstr(aBuf.data(), "<?xml") && strstr(aBuf.data(), "<gpx"))
             {
                 CPLError(CE_Failure, CPLE_AppDefined,
-                         "XML parsing of GPX file failed : %s at line %d, "
-                         "column %d",
-                         XML_ErrorString(XML_GetErrorCode(oParser)),
-                         static_cast<int>(XML_GetCurrentLineNumber(oParser)),
-                         static_cast<int>(XML_GetCurrentColumnNumber(oParser)));
+                         "XML parsing of GPX file failed: %s",
+                         OGRExpatGetParseError(oParser));
             }
             m_validity = GPX_VALIDITY_INVALID;
             break;

@@ -228,7 +228,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install development packages
-        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
         with:
           msystem: MINGW64
           update: true
@@ -328,7 +328,7 @@ jobs:
       shell: pwsh
       run: |
         echo "JAVA_HOME=$env:JAVA_HOME_11_X64" >> %GITHUB_ENV%
-    - uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
+    - uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
       with:
         activate-environment: gdalenv
         miniforge-version: latest
@@ -348,7 +348,7 @@ jobs:
     - name: Install dependency
       shell: bash -l {0}
       run: |
-        conda install --yes --quiet curl libiconv icu python=3.12 pip swig numpy "pytest!=9.1.0" pytest-env pytest-benchmark filelock zlib lxml jsonschema setuptools
+        conda install --yes --quiet curl libiconv icu python=3.12 pip swig numpy pytest=9.1.1 pytest-env pytest-benchmark filelock zlib lxml jsonschema setuptools
         conda install --yes --quiet proj geos hdf4 hdf5 kealib highfive \
             libnetcdf openjpeg poppler libtiff libpng xerces-c expat libxml2 json-c \
             cfitsio freexl geotiff libjpeg-turbo libpq libspatialite libwebp-base pcre pcre2 postgresql \
@@ -445,7 +445,7 @@ jobs:
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
-    - uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
+    - uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
       with:
         activate-environment: gdalenv
         miniforge-version: latest
@@ -455,7 +455,7 @@ jobs:
     - name: Install dependency
       shell: bash -l {0}
       run: |
-        conda install --yes --quiet proj python=3.12 swig "pytest!=9.1.0" pytest-env pytest-benchmark filelock lxml cmake setuptools
+        conda install --yes --quiet proj python=3.12 swig pytest=9.1.1 pytest-env pytest-benchmark filelock lxml cmake setuptools
     - name: Check CMake version
       shell: bash -l {0}
       run: |

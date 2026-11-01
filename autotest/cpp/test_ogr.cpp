@@ -2025,6 +2025,38 @@ TEST_F(test_ogr, OGRGeometry_exportToWkt)
     CPLFree(pszWKT);
 }
 
+// Test that rounding in OGRGeometry::exportToWkt() never turns a non-zero
+// coordinate that fits in the default 15 decimals into 0 (#15317)
+TEST_F(test_ogr, OGRGeometry_exportToWkt_small_values_not_zeroed)
+{
+    const struct
+    {
+        double dfX;
+        const char *pszExpected;
+    } asTests[] = {
+        {1e-15, "POINT (0.000000000000001 1.0)"},
+        {5e-15, "POINT (0.000000000000005 1.0)"},
+        {1e-14, "POINT (0.00000000000001 1.0)"},
+        {-1e-14, "POINT (-0.00000000000001 1.0)"},
+        {1.5e-14, "POINT (0.000000000000015 1.0)"},
+        {9.9e-14, "POINT (0.000000000000099 1.0)"},
+        // Unchanged behavior
+        {1e-13, "POINT (0.0000000000001 1.0)"},
+        {1e-16, "POINT (0.0 1.0)"},
+        {0.12345000000001, "POINT (0.12345 1.0)"},
+    };
+
+    for (const auto &sTest : asTests)
+    {
+        char *pszWKT = nullptr;
+        OGRPoint p(sTest.dfX, 1);
+        p.exportToWkt(&pszWKT);
+        ASSERT_TRUE(pszWKT != nullptr);
+        EXPECT_STREQ(pszWKT, sTest.pszExpected);
+        CPLFree(pszWKT);
+    }
+}
+
 // Test OGRGeometry::clone()
 TEST_F(test_ogr, OGRGeometry_clone)
 {
@@ -4663,6 +4695,48 @@ TEST_F(test_ogr, GetArrowStream_DateTime_As_String)
     }
     schema.release(&schema);
     stream.release(&stream);
+}
+
+TEST_F(test_ogr, OGRLayer_AttributeFilterEvaluationNeedsGeometry)
+{
+    auto poDS = std::unique_ptr<GDALDataset>(
+        GetGDALDriverManager()->GetDriverByName("MEM")->Create(
+            "", 0, 0, 0, GDT_Unknown, nullptr));
+    auto poLayer = poDS->CreateLayer("test", nullptr, wkbNone);
+    {
+        OGRFieldDefn oFieldDefn("str", OFTString);
+        EXPECT_EQ(poLayer->CreateField(&oFieldDefn), OGRERR_NONE);
+    }
+    {
+        OGRGeomFieldDefn oGeomFieldDefn("geom1", wkbPoint);
+        EXPECT_EQ(poLayer->CreateGeomField(&oGeomFieldDefn), OGRERR_NONE);
+    }
+    {
+        OGRGeomFieldDefn oGeomFieldDefn("geom2", wkbPoint);
+        EXPECT_EQ(poLayer->CreateGeomField(&oGeomFieldDefn), OGRERR_NONE);
+    }
+
+    EXPECT_EQ(OGRERR_NONE, poLayer->SetAttributeFilter(nullptr));
+    EXPECT_FALSE(poLayer->AttributeFilterEvaluationNeedsGeometry());
+
+    EXPECT_EQ(OGRERR_NONE,
+              poLayer->SetAttributeFilter("OGR_GEOMETRY = 'POINT'"));
+    EXPECT_TRUE(poLayer->AttributeFilterEvaluationNeedsGeometry());
+
+    EXPECT_EQ(OGRERR_NONE, poLayer->SetAttributeFilter("OGR_GEOM_WKT IS NULL"));
+    EXPECT_TRUE(poLayer->AttributeFilterEvaluationNeedsGeometry());
+
+    EXPECT_EQ(OGRERR_NONE, poLayer->SetAttributeFilter("OGR_GEOM_AREA > 0"));
+    EXPECT_TRUE(poLayer->AttributeFilterEvaluationNeedsGeometry());
+
+    EXPECT_EQ(OGRERR_NONE, poLayer->SetAttributeFilter("geom1 IS NULL"));
+    EXPECT_TRUE(poLayer->AttributeFilterEvaluationNeedsGeometry());
+
+    EXPECT_EQ(OGRERR_NONE, poLayer->SetAttributeFilter("geom2 IS NULL"));
+    EXPECT_TRUE(poLayer->AttributeFilterEvaluationNeedsGeometry());
+
+    EXPECT_EQ(OGRERR_NONE, poLayer->SetAttributeFilter("str IS NULL"));
+    EXPECT_FALSE(poLayer->AttributeFilterEvaluationNeedsGeometry());
 }
 
 // Test OGRFeatureDefn::GetFieldSubTypeByName()
